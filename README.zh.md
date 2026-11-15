@@ -218,7 +218,7 @@ mcp({ "action": "unload", "server": "rea" })    // 再次隐藏
 | `restoreOnResume` | `true` | 从工具新增历史恢复已加载服务器。 |
 | `allowUnload` | `true` | 是否暴露 `unload`。 |
 
-补丁会整体替换该行的 `config`，改的时候请把要保留的键都写全。本包刻意不提供 Schemastery schema（保持零依赖），所以设置页不会生成表单；`resolveConfig` 在激活时校验并收敛每个字段。
+补丁会整体替换该行的 `config`，改的时候请把要保留的键都写全。本包刻意不提供 Schemastery schema（保持零依赖），所以设置页不会生成表单；`resolveConfig` 在激活时校验并归一化每个字段。
 
 ## 限制
 
