@@ -1,0 +1,14 @@
+# dsh-mcp-lazy bundle patch.
+#
+# One Host row. `servers` is optional: each key is an MCP serverName and its
+# value is the one-line summary shown in the stable prompt catalog. The catalog
+# only lists servers that actually register tools, so entries for absent
+# servers are inert. Replace or extend this map for your own MCP servers.
+- insert:
+    - id: mcp-lazy
+      name: dsh-mcp-lazy
+      config:
+        stateFile: "~/.dsh/mcp-lazy-state.json"
+        servers:
+          rea: 逆向工程与二进制分析
+          mcd: 麦当劳中国：菜单/营养/优惠券/积分/点餐

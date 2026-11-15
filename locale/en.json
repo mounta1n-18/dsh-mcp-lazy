@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "MCP Lazy Loading",
+    "description": "Lists each MCP server in one line and loads its tools only when the agent asks."
+  }
+}

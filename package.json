@@ -1,0 +1,51 @@
+{
+  "name": "dsh-mcp-lazy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Progressive disclosure for MCP servers on DeepSeek Harness: one-line catalog, tools loaded on demand through official Host services.",
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "mcp",
+    "progressive-disclosure",
+    "context-optimization"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib/router.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "README.zh.md",
+    "INSTALL.md",
+    "LICENSE",
+    "test/*.test.js"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "pack": "npm pack"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  }
+}
