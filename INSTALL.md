@@ -85,9 +85,15 @@ package manifest still has `dsh.client` and `exports["./client"]`, and that
 
 Do **not** install an MCP server as its own bundle. A bundle appears in the
 plugin panel and gives you a plugin-level switch, which is the wrong boundary.
-Add a `@deepseek-ai/dsh-mcp-client` row to the profile patch instead; the MCP
-panel lists it and owns its per-server switch. The lazy plugin is the only
-plugin-level package.
+Add a `dsh-mcp-lazy/async` row to the profile patch instead; the MCP panel lists
+it and owns its per-server switch. The lazy plugin is the only plugin-level
+package.
+
+`dsh-mcp-lazy/async` is the recommended name: it activates the official
+`@deepseek-ai/dsh-mcp-client` on a detached fiber, so a slow or unreachable
+server cannot delay startup (see README). A plain `@deepseek-ai/dsh-mcp-client`
+row still works, but the host then waits for the first connection before the
+desktop window appears.
 
 Example MCD row in `~/.dsh/cordis.patch.yml` (the token stays in
 `~/.dsh/.mcd-mcp-token`, never in the patch):
@@ -95,7 +101,7 @@ Example MCD row in `~/.dsh/cordis.patch.yml` (the token stays in
 ```yaml
 - insert:
     - id: mcd-remote
-      name: "@deepseek-ai/dsh-mcp-client"
+      name: "dsh-mcp-lazy/async"
       config:
         serverName: mcd
         transport: streamable-http
@@ -144,8 +150,9 @@ first sentence of the server's own `mcp:<name>` instructions; the last fallback
 is `N tools`. A new server therefore gets a usable catalog line without an LLM
 call or a script.
 
-Health source: configured `@deepseek-ai/dsh-mcp-client` rows are read from the
-Loader, so a server with no tools still has a row. `health` is `ok` when tools
+Health source: configured MCP rows (`dsh-mcp-lazy/async` or
+`@deepseek-ai/dsh-mcp-client`) are read from the Loader, so a server with no
+tools still has a row. `health` is `ok` when tools
 are registered; after `healthGraceMs` without tools it becomes `unavailable` and
 the page shows **Unavailable**. To exercise it, point a temporary MCP row at an
 unreachable URL (`failOnStartupError: false`), wait past the grace, then remove
