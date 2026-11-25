@@ -29,6 +29,10 @@ window.__ModuleLoader__.load({
       callFailed: '连接异常',
       noTools: '已连通但无工具',
       connecting: '连接中',
+      firstConnect: '首次连接中…',
+      firstConnectHint: 'DSH 已经打开，这台 MCP 服务器正在后台建立连接。连上之前它的工具不会出现在目录里；连上后这里会变成「46 tools」这类计数。',
+      startupFailed: '启动失败',
+      waitingCredentials: '等待凭据',
       unconfigured: '未纳入监管',
       unconfiguredHint: '工具已经注册，但插件读不到对应的 MCP 配置行，因此无法控制它的披露、也无法判断它是怎么来的。常见原因：这条服务器由别的插件注册，或配置文件暂时读不到。',
       unknown: '配置不可读',
@@ -60,6 +64,10 @@ window.__ModuleLoader__.load({
       callFailed: 'Connection error',
       noTools: 'Reachable, no tools',
       connecting: 'Connecting',
+      firstConnect: 'First connection…',
+      firstConnectHint: 'DSH is already open; this MCP server is connecting in the background. Its tools stay out of the catalog until it connects — once it does, this shows a count like "46 tools".',
+      startupFailed: 'Start failed',
+      waitingCredentials: 'Waiting for credentials',
       unconfigured: 'Not supervised',
       unconfiguredHint: 'Tools are registered, but no MCP loader row matches them, so the plugin cannot control disclosure or explain where they came from. Usually another plugin registered them, or the configuration was unreadable.',
       unknown: 'Config unreadable',
@@ -226,7 +234,10 @@ window.__ModuleLoader__.load({
           } else if (status === 'down') {
             const text = reason === 'call-failed'
               ? translate('callFailed')
-              : reason === 'no-tools' ? translate('noTools') : translate('unavailable')
+              : reason === 'no-tools' ? translate('noTools')
+                : reason === 'startup-failed' ? translate('startupFailed')
+                  : reason === 'waiting-credentials' ? translate('waitingCredentials')
+                    : translate('unavailable')
             badges.push(h('span', {
               key: 'down',
               className: reason === 'no-tools' ? 'mcp-lazy-badge warn' : 'mcp-lazy-badge',
@@ -247,7 +258,12 @@ window.__ModuleLoader__.load({
             }, translate('unknown')))
           }
           if (status === 'connecting') {
-            badges.push(h('span', { key: 'connecting', className: 'mcp-lazy-connecting' }, translate('connecting')))
+            const first = server.firstConnect === true
+            badges.push(h('span', {
+              key: 'connecting',
+              className: 'mcp-lazy-connecting',
+              title: first ? translate('firstConnectHint') : undefined,
+            }, translate(first ? 'firstConnect' : 'connecting')))
           }
           return h('li', {
             key: server.name,

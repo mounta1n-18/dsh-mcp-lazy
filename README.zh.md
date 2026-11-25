@@ -77,6 +77,34 @@ DSH 的 MCP 客户端不暴露健康 API（没有 service、没有事件，连�
 `Error: MCP server "rea" is lazy-loaded: ... Call mcp({action:"load",server:"rea"}) first`；
 `load` 后下一步正常派发，`unload` 后同样的提示再次出现。
 
+### 启动不再等 MCP（`dsh-mcp-lazy/async`）
+
+`@deepseek-ai/dsh-mcp-client` 自己的 `apply` 里有一句 `await connection.ready`——它的设计要求「插件的激活」等首次连接与首次工具同步完成。桌面端的窗口又要等整个插件树装配完才 `show()`，于是**任何一个慢 MCP 服务器都会推迟窗口出现**：GitHub 那条 streamable-http 在冷启动时 TCP 握手能卡十几秒，旧行为下界面就一直不出来。
+
+本插件因此带一个包装行 `dsh-mcp-lazy/async`：配置 schema、工具名、重连策略、`serverName` 占位全部沿用 `dsh-mcp-client`，只是把 `ctx.plugin(client, config)` 放到子 fiber 上、**不 await**。结果是：
+
+- 宿主装配不必等 MCP，窗口可以先出现；
+- MCP 在后台照常连接，连上后工具照常注册，`mcp` 元工具照常能 load；
+- 面板在这期间显示「首次连接中…」，状态来自 `connectionStatusOf()` 的真实相位（`loading`/`starting`/`connecting`），不是猜的；
+- 超时/重连行为完全不变，`startupTimeoutMs`、`failOnStartupError` 仍是客户端自己的语义。
+
+把配置行从 `@deepseek-ai/dsh-mcp-client` 改成 `dsh-mcp-lazy/async` 即启用（`config` 原样保留）：
+
+```yaml
+- id: github-mcp
+  name: dsh-mcp-lazy/async
+  config:
+    serverName: github
+    transport: streamable-http
+    url: https://api.githubcopilot.com/mcp/
+    startupTimeoutMs: 7000
+    failOnStartupError: false
+```
+
+回退只需把 `name` 改回 `@deepseek-ai/dsh-mcp-client`，然后重启。
+
+背景、实测数据与具体代码路径见 [docs/mcp-async-decoupling.md](docs/mcp-async-decoupling.md)。
+
 ## 为什么不会被 DSH 更新覆盖
 
 只使用公开 Host 服务：

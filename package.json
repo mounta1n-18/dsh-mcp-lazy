@@ -15,12 +15,15 @@
   ],
   "exports": {
     ".": "./index.js",
+    "./async": "./async.js",
     "./client": "./client.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
   "files": [
     "index.js",
+    "async.js",
+    "async-status.js",
     "client.js",
     "lib/router.js",
     "cordis.patch.yml",
@@ -30,6 +33,7 @@
     "README.zh.md",
     "INSTALL.md",
     "LICENSE",
+    "docs/*.md",
     "test/*.test.js"
   ],
   "scripts": {

@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict'
+import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
@@ -377,4 +377,33 @@ test('buildInventory reports registered tools with no loader row only when the l
   assert.equal(partial.servers.find((row) => row.name === 'rea').status, 'unconfigured')
   assert.equal(partial.servers.find((row) => row.name === 'rea').reason, 'not-configured')
   assert.equal(partial.servers.find((row) => row.name === 'slow').status, 'connecting')
+})
+
+test('buildInventory reports a deferred row from its own phase, not a grace window', () => {
+  const config = resolveConfig({ servers: {} })
+  const index = buildIndex([], config)
+  const configured = new Map([
+    ['github', { name: 'github', transport: 'streamable-http', url: 'https://example.invalid', description: '' }],
+    ['stuck', { name: 'stuck', transport: 'stdio', url: '', description: '' }],
+  ])
+  const asyncStatus = new Map([
+    ['github', { phase: 'connecting', attempt: 1, error: null }],
+    ['stuck', { phase: 'failed', attempt: 10, error: 'timeout' }],
+  ])
+  const inventory = buildInventory({ configured, index, config, asyncStatus })
+  const byName = new Map(inventory.servers.map((row) => [row.name, row]))
+
+  // Configured, deferred, no tools yet: still on the way, and not an anomaly.
+  assert.equal(byName.get('github').status, 'connecting')
+  assert.equal(byName.get('github').phase, 'connecting')
+  assert.equal(byName.get('github').firstConnect, true)
+  assert.equal(byName.get('github').abnormal, false)
+  assert.equal(byName.get('github').mechanism, 'lazy')
+  // The wrapper gave up: that is a real failure, named as one.
+  assert.equal(byName.get('stuck').status, 'down')
+  assert.equal(byName.get('stuck').reason, 'startup-failed')
+  assert.equal(byName.get('stuck').abnormal, true)
+  assert.equal(byName.get('stuck').firstConnect, false)
+  assert.equal(inventory.counts.connecting, 1)
+  assert.equal(inventory.counts.down, 1)
 })

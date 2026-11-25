@@ -38,6 +38,7 @@ import {
   serverOf,
   summarizeInstructions,
 } from './lib/router.js'
+import { readStatus } from './async-status.js'
 
 /** Cordis plugin name used by Loader diagnostics. */
 export const name = 'mcp-lazy'
@@ -270,8 +271,15 @@ export function apply(ctx, rawConfig = {}) {
   // loader rows (which servers are supposed to exist), the tool registry (which
   // ones actually connected), and tool results (whether a call just failed).
 
-  /** Cordis loader row that owns one MCP server. */
-  const MCP_CLIENT_PLUGIN = '@deepseek-ai/dsh-mcp-client'
+  /**
+   * Loader rows that own exactly one MCP server.
+   *
+   * `dsh-mcp-client` is the Host's bridge; `dsh-mcp-lazy/async` is this
+   * package's deferred wrapper, which starts the same bridge on a child fiber
+   * after boot and reports its progress through `./async-status.js`. Both rows
+   * carry `config.serverName`, so one scan covers both shapes.
+   */
+  const MCP_CLIENT_PLUGINS = new Set(['@deepseek-ai/dsh-mcp-client', 'dsh-mcp-lazy/async'])
 
   /**
    * Why the last loader scan produced no rows, or `null` when it succeeded.
@@ -290,7 +298,7 @@ export function apply(ctx, rawConfig = {}) {
    * observable, so it is the source of truth for "should this exist" — a server
    * listed here but absent from the tool registry is the "配置了却没连上" case.
    *
-   * @returns {Map<string, { name: string, transport: string, url: string, description: string }>} rows by server name.
+   * @returns {Map<string, { name: string, transport: string, url: string, description: string, plugin: string }>} rows by server name.
    */
   const scanConfiguredServers = () => {
     const rows = new Map()
@@ -310,7 +318,7 @@ export function apply(ctx, rawConfig = {}) {
       // made to report instead of crash on.
       try {
         const options = entry?.options
-        if (options?.name !== MCP_CLIENT_PLUGIN) continue
+        if (!MCP_CLIENT_PLUGINS.has(options?.name)) continue
         const row = options.config
         const name = typeof row?.serverName === 'string' ? row.serverName : ''
         if (name.length === 0) continue
@@ -319,6 +327,7 @@ export function apply(ctx, rawConfig = {}) {
           transport: typeof row.transport === 'string' ? row.transport : '',
           url: typeof row.url === 'string' ? row.url : '',
           description: typeof row.description === 'string' ? row.description : '',
+          plugin: options.name,
         })
       } catch (error) {
         scanFailure ??= String(error)
@@ -979,6 +988,9 @@ export function apply(ctx, rawConfig = {}) {
             disabled: disabledServers,
             health,
             config,
+            asyncStatus: configured.size === 0
+              ? undefined
+              : new Map([...configured.keys()].map((name) => [name, readStatus(name)]).filter(([, status]) => status !== undefined)),
             scan: { ok: scanFailure === null, error: scanFailure },
           })
           const body = JSON.stringify({

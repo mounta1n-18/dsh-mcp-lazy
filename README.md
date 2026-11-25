@@ -83,6 +83,46 @@ Verified on the reference machine with a fresh subagent: a hidden
 `Error: MCP server "rea" is lazy-loaded: ... Call mcp({action:"load",server:"rea"}) first`,
 the load made it dispatch next step, and `unload` brought the same hint back.
 
+### Start without waiting for MCP (`dsh-mcp-lazy/async`)
+
+`@deepseek-ai/dsh-mcp-client` awaits `connection.ready` inside its own `apply`:
+by design, activating that plugin waits for the initial connection and the
+first tool sync. The desktop shell only shows its window once the whole plugin
+tree is assembled, so **any slow MCP server delays the window** — a
+streamable-http server whose TCP handshake stalls on a cold boot used to hold
+the UI back for the length of the timeout.
+
+This package therefore ships a wrapper row, `dsh-mcp-lazy/async`. It keeps the
+client's config schema, tool names, reconnect policy, and `serverName`
+reservation, but starts `ctx.plugin(client, config)` on a child fiber without
+awaiting it. As a result:
+
+- the Host finishes booting and the window appears without waiting for MCP;
+- the server keeps connecting in the background and registers its tools the
+  moment it succeeds, so `mcp load` behaves exactly as before;
+- the panel shows "First connection…" meanwhile, driven by the real phase from
+  `connectionStatusOf()` (`loading` / `starting` / `connecting`), not a timer;
+- timeouts and reconnects are unchanged: `startupTimeoutMs` and
+  `failOnStartupError` still mean what the client's README says they mean.
+
+Switch a row from `@deepseek-ai/dsh-mcp-client` to `dsh-mcp-lazy/async` to opt
+in; the `config` stays as it is:
+
+```yaml
+- id: github-mcp
+  name: dsh-mcp-lazy/async
+  config:
+    serverName: github
+    transport: streamable-http
+    url: https://api.githubcopilot.com/mcp/
+    startupTimeoutMs: 7000
+    failOnStartupError: false
+```
+
+Reverting is the same edit in reverse, then a restart.
+
+Background, measurements and the exact code path: [docs/mcp-async-decoupling.md](docs/mcp-async-decoupling.md).
+
 ## Why this is upgrade-safe
 
 The plugin only uses documented Host services:
